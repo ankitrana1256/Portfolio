@@ -279,7 +279,7 @@ class App {
 
     // Text
     const loader = new THREE.FontLoader();
-    loader.load("/fonts/optimer_bold.typeface.json", (font) => {
+    loader.load("assets/fonts/optimer_bold.typeface.json", (font) => {
       const geometry = new THREE.TextGeometry("Vision", {
         font: font,
         size: 2,
