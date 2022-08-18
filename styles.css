@@ -1,0 +1,118 @@
+* {
+  margin: 0;
+  padding: 0;
+}
+
+#canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  background: #000000;
+}
+
+#css {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  pointer-events: None;
+}
+
+#slide {
+    width:60vw;
+    height:25vh;
+    background-color: white;
+    position: fixed;
+    overflow: hidden;
+    top: 30%;
+    left: 20%;
+    display: flex;
+    flex-direction: row;
+    overflow: hidden;
+    visibility: hidden;
+}
+
+.items{
+  padding: 0;
+  /* border: 2px solid black; */
+  height: 25vh;
+  width: 25vw;
+  overflow: hidden;
+}
+
+.items img{
+  height: inherit;
+  width: 100%;
+}
+
+.items img:hover{
+  border: 4px solid black;
+}
+
+#map{
+  position: relative;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+  /* display: none; */
+}
+
+.weather{
+  border: 2px solid white;
+  padding: 10px;
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  /* background-color: white; */
+  color: white;
+  border-radius: 20px;
+  pointer-events: none;
+}
+
+.profile{
+  pointer-events: none;
+  background-color: white;
+  color: #000000;
+  background-color: transparent;
+}
+
+.Marker{
+  padding: 12px;
+  border-radius: 50%;
+  border: 2px solid white;
+}
+
+.headings{
+  padding: 10px;
+  
+}
+
+.city-temp {
+  font-size: 5rem;
+  font-weight: bold;
+  margin-top: 10px;
+  color: var(--text_dark);
+}
+
+.city sup {
+  font-size: 0.5em;
+}
+
+.city-name sup {
+  padding: 0.2em 0.6em;
+  border-radius: 30px;
+  color: var(--text_light);
+  background: var(--orange);
+}
+
+.city-icon {
+  margin-top: 10px;
+  width: 100px;
+  height: 100px;
+}
+
+figcaption {
+  margin-top: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}

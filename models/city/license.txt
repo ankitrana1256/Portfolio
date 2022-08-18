@@ -1,0 +1,11 @@
+Model Information:
+* title:	New York Lower Manhattan (cmp)
+* source:	https://sketchfab.com/3d-models/new-york-lower-manhattan-cmp-229960a78e18465c875d9c23f3f94ad9
+* author:	ztrztr (https://sketchfab.com/ztrztr3)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "New York Lower Manhattan (cmp)" (https://sketchfab.com/3d-models/new-york-lower-manhattan-cmp-229960a78e18465c875d9c23f3f94ad9) by ztrztr (https://sketchfab.com/ztrztr3) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
