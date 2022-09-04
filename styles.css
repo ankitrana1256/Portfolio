@@ -49,14 +49,6 @@
   border: 4px solid black;
 }
 
-#map{
-  position: relative;
-  height: 100vh;
-  width: 100vw;
-  overflow: hidden;
-  /* display: none; */
-}
-
 .weather{
   border: 2px solid white;
   padding: 10px;

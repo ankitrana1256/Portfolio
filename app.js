@@ -157,7 +157,7 @@ class App {
     // Celings
     const ceiling = new THREE.Mesh(
       new THREE.PlaneBufferGeometry(20, 20),
-      new THREE.MeshPhongMaterial({ side: THREE.DoubleSide, map: ground }),
+      new THREE.MeshPhongMaterial({ side: THREE.DoubleSide}),
       new THREE.MeshPhongMaterial({ color: 0x999999, depthWrite: false })
     );
     ceiling.receiveShadow = true;
@@ -183,12 +183,12 @@ class App {
     this.loadGLTF(this.loader);
     this.get_console(this.loader);
     this.get_earth(this.loader);
-    this.get_city(this.loader);
     this.get_social(this.loader);
     this.get_tv(this.loader);
     this.sudowoodo(this.loader);
     this.lapras(this.loader);
-    // this.drone(this.loader);
+    this.laptop(this.loader);
+    this.ufo(this.loader);
 
     // Orbital Controls
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
@@ -345,12 +345,42 @@ class App {
     cylinder.position.set(8, 0.9, -7.5);
     this.scene.add(cylinder);
 
-    // Map stand
+    // Pillars
+    this.pillar1 = new THREE.Mesh(
+      new THREE.BoxBufferGeometry(1,1,20),
+      new THREE.MeshPhongMaterial()
+    );
+    this.pillar1.position.set(9.54,9.59,0.01);
+    this.scene.add(this.pillar1);
+
+    this.pillar2 = new THREE.Mesh(
+      new THREE.BoxBufferGeometry(1,1,20),
+      new THREE.MeshPhongMaterial()
+    );
+    this.pillar2.position.set(-9.54,9.59,0.01)
+    this.scene.add(this.pillar2);
+
+    // Ceiling
+    this.cd1 = new THREE.Mesh(
+      new THREE.BoxBufferGeometry(19,1,1),
+      new THREE.MeshPhongMaterial()
+    );
+    this.cd1.position.set(0,9.59,-9.52)
+    this.scene.add(this.cd1);
+
+    this.cd2 = new THREE.Mesh(
+      new THREE.BoxBufferGeometry(19,1,1),
+      new THREE.MeshPhongMaterial()
+    );
+    this.cd2.position.set(0,9.59,9.52)
+    this.scene.add(this.cd2);
+
+    // Stand
     var cube = new THREE.Mesh(
-      new THREE.BoxBufferGeometry(3, 1.2, 3),
+      new THREE.BoxBufferGeometry(2, 1.2, 3),
       new THREE.MeshStandardMaterial()
     );
-    cube.position.set(7.9, 0.7, -0.1);
+    cube.position.set(7.9, 0.72, -0.075);
     cube.receiveShadow = true;
     this.scene.add(cube);
 
@@ -402,6 +432,19 @@ class App {
     profileScreen.rotation.y = 4.7;
     profileScreen.position.set(10, 6.4, -1.47);
     this.cssScene.add(profileScreen);
+
+      
+    // const tween1 = new TWEEN.Tween(this.cube1.position)
+    //   .to({ x: 0,y:5,z:0 }, 2000)
+    //   .delay(100);
+    // const tween2 = new TWEEN.Tween(this.cube1.position)
+    //   .to({ x: 0,y:0,z:0  }, 2000)
+    //   .delay(100);
+    // tween1.chain(tween2);
+    // tween2.chain(tween1);
+
+    // tween1.start();
+    // tween2.start();
 
 
     // Frame1
@@ -503,6 +546,8 @@ class App {
     this.previousTime = this.elapsedTime;
     this.water.material.uniforms["time"].value += 1.0 / 150.0;
 
+    const t = Date.now() * 0.001;
+
     if (this.instConnect != undefined) {
       this.instConnect.rotation.y = this.elapsedTime;
     }
@@ -523,18 +568,22 @@ class App {
       this.mixer2.update(this.deltaTime);
     }
 
-    if (this.droneAnim != null) {
-      this.droneAnim.update(this.deltaTime);
+    if (this.mixer3 != null) {
+      this.mixer3.update(this.deltaTime);
     }
+
+    if(this.laptopMesh != null){
+      this.laptopMesh.rotation.x = Math.sin(t) * 0.045;
+      this.laptopMesh.position.y = 1.4 + Math.sin(t) *0.025;
+    }
+
 
     this.cssRenderer.render(this.cssScene, this.camera);
 
     this.showSlider();
-    this.showMap();
 
     // this.resetMaterial();
     // this.hoverpieces();
-
     this.update();
 
     this.renderer.clear();
@@ -543,6 +592,7 @@ class App {
     this.renderer.shadowMap.enabled = true;
     this.renderer.render(this.scene, this.camera);
     this.stats.update();
+    TWEEN.update();
   }
 
   update() {
@@ -590,6 +640,7 @@ class App {
       "./models/Xbot.glb",
       (gltf) => {
         this.actions = gltf.animations;
+        console.log(this.actions)
         this.character = gltf.scene;
         this.character.position.y = 0.12;
 
@@ -649,21 +700,6 @@ class App {
       action1.play();
       gltf5.scene.rotation.y = Math.PI;
       this.scene.add(gltf5.scene);
-    });
-  }
-
-  get_city(loader) {
-    loader.load("./models/city/scene.gltf", (gltf6) => {
-      this.city = gltf6.scene;
-      gltf6.scene.scale.set(0.0075, 0.0075, 0.0075);
-      gltf6.scene.position.set(6.5, 0.5, -0.5);
-      gltf6.scene.traverse(function (object) {
-        if (object.isMesh) {
-          object.castShadow = true;
-          object.receiveShadow = false;
-        }
-      });
-      this.scene.add(gltf6.scene);
     });
   }
 
@@ -728,10 +764,27 @@ class App {
     });
   }
 
-  drone(loader) {
-    loader.load("./models/drone/scene.glb", (gltf) => {
+  laptop(loader) {
+    loader.load("./models/Laptop/scene.gltf", (gltf) => {
+      this.laptopMesh = gltf.scene;
+      gltf.scene.scale.set(0.075, 0.075, 0.075);
+      gltf.scene.position.set(7.8, 2, 0);
+      gltf.scene.traverse(function (object) {
+        if (object.isMesh) {
+          object.castShadow = true;
+          object.receiveShadow = false;
+        }
+      });
+      gltf.scene.rotation.y = -Math.PI / 2;
+      this.scene.add(gltf.scene);
+    });
+  }
+
+  ufo(loader) {
+    loader.load("./models/ufo/scene.gltf", (gltf) => {
+      this.ufo = gltf.scene;
       gltf.scene.scale.set(0.5, 0.5, 0.5);
-      gltf.scene.position.set(0, 0, 0);
+      gltf.scene.position.set(8,0.6,7);
       gltf.scene.traverse(function (object) {
         if (object.isMesh) {
           object.castShadow = true;
@@ -739,14 +792,22 @@ class App {
         }
       });
 
-      this.droneAnim = new THREE.AnimationMixer(gltf.scene);
-      const clip = gltf.animations[0];
-      const action = this.droneAnim.clipAction(clip)
-      action.play();
-      gltf.scene.rotation.y = Math.PI / 2;
+      this.mixer3 = new THREE.AnimationMixer(gltf.scene);
+      var clip1 = gltf.animations[0];
+      var action1 = this.mixer3.clipAction(clip1);
+      action1.play();
+
+      gltf.scene.rotation.y = -Math.PI / 2;
       this.scene.add(gltf.scene);
+
+      const tween1 = new TWEEN.Tween(this.ufo.position).to({x:-8.4,y:8.1,z:-7.6},4000).delay(100);
+      const tween2 = new TWEEN.Tween(this.ufo.position).to({x:-8.4,y:8.1,z:7.9},4000).delay(100);
+      tween1.chain(tween2);
+      tween2.chain(tween1);
+      tween1.start()
     });
   }
+
 
   get_tv(loader) {
     loader.load("./models/tv/scene.gltf", (gltf8) => {
@@ -863,24 +924,6 @@ class App {
       } else {
         getslider.style.visibility = "hidden";
         this.controls.enabled = true;
-      }
-    }
-  }
-
-  snow() {}
-
-  showMap() {
-    if (this.character != undefined) {
-      var a = 6.5 - this.character.position.x;
-      var b = 0.5 - this.character.position.y;
-      var c = -0.5 - this.character.position.z;
-      var d = Math.sqrt(a * a + b * b + c * c);
-      const getMap = document.getElementById("map");
-
-      if (d < 1.3236005105286883) {
-        getMap.style.display = "unset";
-      } else {
-        getMap.style.display = "none";
       }
     }
   }

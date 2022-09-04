@@ -5,7 +5,7 @@
     <link rel="stylesheet" href="./styles.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0/dist/css/bootstrap.rtl.min.css" integrity="sha384-+4j30LffJ4tgIMrq9CwHvn0NjEvmuDCOfk6Rpg2xg7zgOxWWtLtozDEEVvBPgHqE" crossorigin="anonymous">
     <script src="https://unpkg.com/three/build/three.min.js"></script>
-    <script src="https://unpkg.com/@here/harp.gl/dist/harp.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tweenjs@1.0.2/lib/tweenjs.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.7.9/dat.gui.js" integrity="sha512-Mcz+Mt8k23j06ycA5EJGfyXbtzB6xqEoJxjGftQQoed/zQzem9Lt21LRymjlcm+NUsbF0LOHgfdN8LO8GtKDOw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script src="./libs/tween.js"></script> 
 </head>
@@ -24,34 +24,6 @@
         <img src="./assets/images/WebScraping.jpg" id="1" class="videoClass" path="./video/Data_Loading.mp4">
       </div>
     </div>
-    <canvas id="map">
-    </canvas>
-    <script>
-
-      const canvas = document.getElementById("map");
-      const mapView = new harp.MapView({
-        canvas,
-        theme:
-          "https://unpkg.com/@here/harp-map-theme@latest/resources/berlin_tilezen_effects_streets.json",
-      });
-
-      // center the camera to New York
-      mapView.lookAt({
-        target: new harp.GeoCoordinates(40.70398928, -74.01319808),
-        tilt: 60,
-        zoomLevel: 16.8,
-      });
-
-
-      mapView.resize(window.innerWidth, window.innerHeight);
-      window.onresize = () =>
-        mapView.resize(window.innerWidth, window.innerHeight);
-
-      const vectorTileDataSource = new harp.VectorTileDataSource({
-        authenticationCode: "GOuVnAQeC9e_Tm9Hsz9wzOvZQZ4XEgyfu91I7xCCS0U",
-      });
-      mapView.addDataSource(vectorTileDataSource);
-    </script>
 
     <script type="module">
         import {App} from './app.js';
