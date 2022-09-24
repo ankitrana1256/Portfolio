@@ -7,8 +7,8 @@
 }
 
 body{
-  display: flex;
-  justify-content: center;
+  display: block;
+  overflow: hidden;
 }
 
 #canvas {
