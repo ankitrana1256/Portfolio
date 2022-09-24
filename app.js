@@ -116,6 +116,7 @@ class App {
     ground.repeat.set(5, 5);
 
     const avatar = tloader.load("assets/images/avatar.jpg");
+    const certificate = tloader.load("assets/images/certificate.png");
 
     this.wallsAndGround(ground);
 
@@ -303,7 +304,6 @@ class App {
       this.vision = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial());
       this.vision.receiveShadow = true;
       this.vision.castShadow = true;
-      // this.vision.rotation.y = 1.57;
       this.vision.position.set(-10, 5, -10);
       this.scene.add(this.vision);
     });
@@ -445,15 +445,6 @@ class App {
     // this.b.position.set(8.1,-0.1,3.7);
     // this.cssScene.add(this.b);
 
-    // Frame1
-    // const frame1 = frame3D(0.1, 4.2, 2, itachiPos);
-    // frame1.position.set(10, 2.8, 4);
-    // this.scene.add(frame1);
-
-    // Frame2
-    // const frame = frame3D(0.1, 4.2, 2, sasukePos);
-    // frame.position.set(10, 2.8, -4.3);
-    // this.scene.add(frame);
 
     // Lights
     const light = new THREE.DirectionalLight(0xffffff, 0.5);
@@ -548,19 +539,11 @@ class App {
     cube.position.set(-10, 6, 5);
     this.scene.add(cube);
 
-    // Football
-    //   this.football = new THREE.Mesh(
-    //     new THREE.SphereBufferGeometry(0.8,30,30),
-    //     new THREE.MeshBasicMaterial({map:this.footballT})
-    //   )
-    //   this.scene.add(this.football);
 
-    //   this.sphereBody = new CANNON.Body({
-    //     mass: 1, // kg
-    //     position: new CANNON.Vec3(0, 1, -2), // m
-    //     shape: new CANNON.Sphere(0.8)
-    //  });
-    //  this.world.addBody(this.sphereBody);
+    // Certificate
+    const cube2 = frame3D(0.02, 3, 2, certificate);
+    cube2.position.set(-10, 6, -5);
+    this.scene.add(cube2);
 
     // Binders
     window.addEventListener("resize", this.resize.bind(this));
@@ -570,7 +553,6 @@ class App {
         if (element.getAttribute("class") === "videoClass") {
           this.video.src = element.getAttribute("path");
           this.sfx.stopAll();
-          this.video.setAttribute("loop", false);
           this.video.play();
 
         }
@@ -601,7 +583,7 @@ class App {
     <sup>${sys.country}</sup>
   </h2>
   <div class="city-temp">${Math.round(main.temp)}<sup>°C</sup></div>
-  <figure>
+  <figure class="icon-container">
     <img class="city-icon" src="${icon}" alt="${weather[0]["description"]}">
     <figcaption>${weather[0]["description"]}</figcaption>
   </figure>
@@ -627,9 +609,6 @@ class App {
     this.deltaTime = this.elapsedTime - this.previousTime;
     this.previousTime = this.elapsedTime;
     this.water.material.uniforms["time"].value += 1.0 / 150.0;
-
-    // this.football.position.copy(this.sphereBody.position);
-    // this.football.quaternion.copy(this.sphereBody.quaternion);
 
     this.world.step(1 / 60, this.deltaTime, 3);
     const t = Date.now() * 0.001;
@@ -940,7 +919,7 @@ class App {
         }
       });
       gltf.scene.scale.set(0.3, 0.3, 0.3);
-      gltf.scene.position.set(6, 0.38, 0);
+      gltf.scene.position.set(6.05, 0.38, 0);
       this.scene.add(gltf.scene);
     });
   }
