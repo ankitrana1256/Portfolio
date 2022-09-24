@@ -1,6 +1,14 @@
+@import url('https://fonts.googleapis.com/css?family=Roboto:300,400,500,700,900&display=swap');
+
 * {
   margin: 0;
   padding: 0;
+  font-family: 'Roboto', sans-serif;
+}
+
+body{
+  display: flex;
+  justify-content: center;
 }
 
 #canvas {
@@ -76,7 +84,6 @@
 
 .headings{
   padding: 10px;
-  
 }
 
 .city-temp {
@@ -107,4 +114,62 @@ figcaption {
   margin-top: 10px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
+}
+
+#info{
+  position: absolute;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: rgba(0, 0, 0, 0.6);
+  width: 100vw;
+  height: 100vh;
+}
+
+#info .info-container{
+  position: absolute;
+  background-color: black;
+  width: 90vw;
+  height: 90vh;
+  z-index: 4;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  border-radius: 20px;
+}
+
+#cross{
+  z-index: 10;
+  color: white;
+  background-color: blue;
+  border: 2px solid white;
+}
+
+.description{
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  width: 20vw;
+  pointer-events: none;
+}
+
+.content{
+  display: flex;
+  justify-content: center;
+  height: 20vh;
+  width: 18vw;
+}
+
+
+#start{
+  margin-top: 20px;
+  padding: 50px;
+  color: white;
+  background-color: transparent;
+  border: 2px solid white;
+  border-radius: 50%;
+  font-weight: bolder
+
 }

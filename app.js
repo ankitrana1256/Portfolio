@@ -1,4 +1,6 @@
 import * as THREE from "./libs/three128/three.module.js";
+import * as CANNON from "./libs/cannon-es.js";
+import CannonDebugger from "./libs/cannon-es-debugger.js";
 import { CSS3DRenderer, CSS3DObject } from "./libs/CSS3DRenderer.js";
 import { OrbitControls } from "./libs/three128/OrbitControls.js";
 import { LoadingBar } from "./libs/LoadingBar.js";
@@ -10,6 +12,29 @@ import { Stats } from "./libs/stats.min.js";
 
 class App {
   constructor() {
+    this.speed = 0.059;
+    this.angle = 0;
+
+    // Applying Physics
+    this.world = new CANNON.World();
+    this.world.broadphase = new CANNON.SAPBroadphase(this.world);
+    this.world.gravity.set(0, -9.82, 0);
+    this.world.solver.iterations = 6;
+    this.world.defaultContactMaterial.contactEquationStiffness = 1e6;
+    this.world.defaultContactMaterial.contactEquationRelaxation = 3;
+
+    // Materials
+    this.defaultMaterial = new CANNON.Material("default");
+    this.defaultContactMaterial = new CANNON.ContactMaterial(
+      this.defaultMaterial,
+      {
+        friction: 0.1,
+        restitution: 0.7,
+      }
+    );
+    this.world.addContactMaterial(this.defaultContactMaterial);
+    this.world.defaultContactMaterial = this.defaultContactMaterial;
+
     // Raycaster
     this.raycaster = new THREE.Raycaster();
     this.mouse = new THREE.Vector2();
@@ -32,6 +57,8 @@ class App {
     // Scene
     this.scene = new THREE.Scene();
     this.cssScene = new THREE.Scene();
+
+    this.cannonDebugger = new CannonDebugger(this.scene, this.world);
 
     // Renderer
     this.cssRenderer = new CSS3DRenderer();
@@ -57,6 +84,7 @@ class App {
     const ambient = new THREE.HemisphereLight(0xffffff, 0xbbbbff, 0.3);
     this.scene.add(ambient);
 
+    // Stats
     this.stats = Stats();
     document.body.appendChild(this.stats.dom);
 
@@ -87,88 +115,14 @@ class App {
     ground.wrapT = THREE.RepeatWrapping;
     ground.repeat.set(5, 5);
 
-    const itachiPos = tloader.load("./assets/images/itachi.jpg");
-    const sasukePos = tloader.load("./assets/images/Sasuke.jpg");
+    const avatar = tloader.load("assets/images/avatar.jpg");
 
-    // Plane
-    const plane = new THREE.Mesh(
-      new THREE.PlaneBufferGeometry(20, 20),
-      new THREE.MeshStandardMaterial({
-        side: THREE.DoubleSide,
-        map: ground,
-      })
-    );
-    plane.receiveShadow = true;
-    plane.rotation.x = -Math.PI * 0.5;
-    plane.position.y = 0.1;
-    plane.opacity = 0.5;
-    this.scene.add(plane);
-
-    // wallR
-    const wallR = new THREE.Mesh(
-      new THREE.PlaneBufferGeometry(20, 10),
-      new THREE.MeshPhongMaterial({}),
-      new THREE.MeshPhongMaterial({ color: 0x999999, depthWrite: false })
-    );
-    wallR.receiveShadow = true;
-    wallR.rotation.y = -Math.PI / 2;
-    wallR.position.x = 10;
-    wallR.position.y = 5.1;
-    this.scene.add(wallR);
-
-    // WallL
-    const wallL = new THREE.Mesh(
-      new THREE.PlaneBufferGeometry(20, 10),
-      new THREE.MeshPhongMaterial({}),
-      new THREE.MeshPhongMaterial({ color: 0x999999, depthWrite: false })
-    );
-    wallL.receiveShadow = true;
-    wallL.rotation.y = Math.PI / 2;
-    wallL.position.x = -10;
-    wallL.position.y = 5.1;
-    this.scene.add(wallL);
-
-    // WallB
-    const wallB = new THREE.Mesh(
-      new THREE.PlaneBufferGeometry(20, 10),
-      new THREE.MeshPhongMaterial({ map: ground }),
-      new THREE.MeshPhongMaterial({ color: 0x999999, depthWrite: false })
-    );
-    wallB.receiveShadow = true;
-    wallB.rotation.z = Math.PI * 2;
-    wallB.position.z = -10;
-    wallB.position.y = 5.1;
-    this.scene.add(wallB);
-
-    // WallF
-    const wallF = new THREE.Mesh(
-      new THREE.PlaneBufferGeometry(20, 10),
-      new THREE.MeshStandardMaterial({
-        transparent: true,
-        opacity: 0.2,
-      })
-    );
-    wallF.receiveShadow = true;
-    wallF.rotation.x = Math.PI * 3;
-    wallF.position.z = 10;
-    wallF.position.y = 5.1;
-    this.scene.add(wallF);
-
-    // Celings
-    const ceiling = new THREE.Mesh(
-      new THREE.PlaneBufferGeometry(20, 20),
-      new THREE.MeshPhongMaterial({ side: THREE.DoubleSide}),
-      new THREE.MeshPhongMaterial({ color: 0x999999, depthWrite: false })
-    );
-    ceiling.receiveShadow = true;
-    ceiling.rotation.x = -Math.PI * 0.5;
-    ceiling.position.y = 10.1;
-    this.scene.add(ceiling);
+    this.wallsAndGround(ground);
 
     // Greetings
     this.greet = cssObject(
       "greet",
-      `<h1 align="center" id="greet">Hi there <img src="https://raw.githubusercontent.com/MartinHeinz/MartinHeinz/master/wave.gif" width="30px">, I'm Ankit Rana</h1><h5 align="center">Contact me on <b>ankitrana5000nd@gmail.com</b></h5>`,
+      `<h1 align="center" id="greet">Hi there <img src="./assets/logos/Hand.png" width="30px">, I'm Ankit Rana</h1><h5 align="center">Contact me on <b>ankitrana5000nd@gmail.com</b></h5>`,
       -10,
       6,
       0
@@ -182,36 +136,37 @@ class App {
     this.loader = new GLTFLoader();
     this.loadGLTF(this.loader);
     this.get_console(this.loader);
+    // this.get_bot(this.loader);
     this.get_earth(this.loader);
     this.get_social(this.loader);
+    this.load_google(this.loader);
+    this.viam(this.loader);
+    this.plant_text(this.loader);
+    this.api(this.loader);
+    this.putatoe(this.loader);
     this.get_tv(this.loader);
     this.sudowoodo(this.loader);
+    this.load_plant(this.loader);
     this.lapras(this.loader);
-    this.laptop(this.loader);
+    this.screen2(this.loader);
     this.ufo(this.loader);
+
+    this.player = createPlayer();
+
+    this.world.addBody(this.player);
 
     // Orbital Controls
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
     // Remove comments to restrict camera
     this.controls.enablePan = false;
     this.controls.minDistance = 6;
-    this.controls.maxDistance = 10;
+    this.controls.maxDistance = 6;
     this.controls.maxPolarAngle = Math.PI / 2.1;
     this.controls.minPolarAngle = 0;
 
     // FPS Camera Window
     this.insetWidth = window.innerHeight / 3;
     this.insetHeight = window.innerHeight / 4;
-
-    // FPS camera
-    this.camera2 = new THREE.PerspectiveCamera(
-      40,
-      window.innerWidth / window.innerHeight,
-      0.1,
-      100
-    );
-    this.camera2.rotation.y = Math.PI;
-    this.camera2.position.set(0, 2, 0);
 
     // Ocean
     const waterGeometry = new THREE.PlaneGeometry(10000, 10000);
@@ -289,15 +244,94 @@ class App {
         bevelOffset: 1,
         bevelSegments: 12,
       });
-      const text = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial());
-      text.receiveShadow = true;
-      text.castShadow = true;
-      text.position.set(-4, 0.14, -7);
-      this.scene.add(text);
+      this.vision = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial());
+      this.vision.receiveShadow = true;
+      this.vision.castShadow = true;
+      this.vision.position.set(-4, 0.14, -7);
+      this.scene.add(this.vision);
     });
 
+    // Internships
+    loader.load("assets/fonts/optimer_bold.typeface.json", (font) => {
+      const geometry = new THREE.TextGeometry("INTERNSHIPS", {
+        font: font,
+        size: 0.8,
+        height: 0.1,
+        curveSegments: 12,
+        bevelSize: 8,
+        bevelOffset: 1,
+        bevelSegments: 12,
+      });
+      this.vision = new THREE.Mesh(geometry, new THREE.MeshNormalMaterial());
+      this.vision.receiveShadow = true;
+      this.vision.castShadow = true;
+      this.vision.rotation.y = -1.57;
+      this.vision.position.set(10, 0.14, -1.6);
+      this.scene.add(this.vision);
+    });
+
+    // My Profiles
+    loader.load("assets/fonts/optimer_bold.typeface.json", (font) => {
+      const geometry = new THREE.TextGeometry("MY PROFILES", {
+        font: font,
+        size: 0.4,
+        height: 0.1,
+        curveSegments: 12,
+        bevelSize: 8,
+        bevelOffset: 1,
+        bevelSegments: 12,
+      });
+      this.vision = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial());
+      this.vision.receiveShadow = true;
+      this.vision.castShadow = true;
+      this.vision.rotation.y = 1.57;
+      this.vision.position.set(-10, 4, 4.8);
+      this.scene.add(this.vision);
+    });
+
+    // My Projects
+    loader.load("assets/fonts/optimer_bold.typeface.json", (font) => {
+      const geometry = new THREE.TextGeometry("MY PROJECTS", {
+        font: font,
+        size: 0.4,
+        height: 0.1,
+        curveSegments: 12,
+        bevelSize: 8,
+        bevelOffset: 1,
+        bevelSegments: 12,
+      });
+      this.vision = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial());
+      this.vision.receiveShadow = true;
+      this.vision.castShadow = true;
+      // this.vision.rotation.y = 1.57;
+      this.vision.position.set(-10, 5, -10);
+      this.scene.add(this.vision);
+    });
+
+    // Quote
+    loader.load("assets/fonts/optimer_bold.typeface.json", (font) => {
+      const geometry = new THREE.TextGeometry(
+        "Every sunset brings the promise of a new dawn.",
+        {
+          font: font,
+          size: 0.4,
+          height: 0.1,
+          curveSegments: 12,
+          bevelSize: 8,
+          bevelOffset: 1,
+          bevelSegments: 12,
+        }
+      );
+      this.vision = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial());
+      this.vision.receiveShadow = true;
+      this.vision.castShadow = true;
+      this.vision.rotation.y = Math.PI;
+      this.vision.position.set(6, 5, 10);
+      this.scene.add(this.vision);
+    });
+
+    // Your tag
     this.number = document.createElement("div");
-    this.number.className = "number";
     this.number.textContent = "YOU";
     this.number.style.color = "white";
     this.number.style.boxSizing = "border-box";
@@ -308,6 +342,7 @@ class App {
 
     const inputVal = "Faridabad, IN";
     const apiKey = "4d8fb5b93d4af21d66a2948710284366";
+
     const data = fetch(
       `https://api.openweathermap.org/data/2.5/weather?q=${inputVal}&appid=${apiKey}&units=metric`
     )
@@ -329,7 +364,7 @@ class App {
     // Instructions
     this.instruction = cssObject(
       "insplay",
-      `<p>Press O to play the background sound</p><p>Press P to play the video</p><p>Press spacebar to pause the video</p><p>Change video from the console</p>`,
+      `<p>Go to the console</p><p>Select any video to play</p><p>Press spacebar to pause the video</p><p>Change video from the console</p>`,
       -10,
       2.5,
       -5.9
@@ -345,49 +380,10 @@ class App {
     cylinder.position.set(8, 0.9, -7.5);
     this.scene.add(cylinder);
 
-    // Pillars
-    this.pillar1 = new THREE.Mesh(
-      new THREE.BoxBufferGeometry(1,1,20),
-      new THREE.MeshPhongMaterial()
-    );
-    this.pillar1.position.set(9.54,9.59,0.01);
-    this.scene.add(this.pillar1);
-
-    this.pillar2 = new THREE.Mesh(
-      new THREE.BoxBufferGeometry(1,1,20),
-      new THREE.MeshPhongMaterial()
-    );
-    this.pillar2.position.set(-9.54,9.59,0.01)
-    this.scene.add(this.pillar2);
-
-    // Ceiling
-    this.cd1 = new THREE.Mesh(
-      new THREE.BoxBufferGeometry(19,1,1),
-      new THREE.MeshPhongMaterial()
-    );
-    this.cd1.position.set(0,9.59,-9.52)
-    this.scene.add(this.cd1);
-
-    this.cd2 = new THREE.Mesh(
-      new THREE.BoxBufferGeometry(19,1,1),
-      new THREE.MeshPhongMaterial()
-    );
-    this.cd2.position.set(0,9.59,9.52)
-    this.scene.add(this.cd2);
-
-    // Stand
-    var cube = new THREE.Mesh(
-      new THREE.BoxBufferGeometry(2, 1.2, 3),
-      new THREE.MeshStandardMaterial()
-    );
-    cube.position.set(7.9, 0.72, -0.075);
-    cube.receiveShadow = true;
-    this.scene.add(cube);
-
     // Instagram
     this.instConnect = cssObject(
       "Marker",
-      `<a href="https://instagram.com/ankitrana_09" target="blank"><img align="center" src="https://raw.githubusercontent.com/rahuldkjain/github-profile-readme-generator/master/src/images/icons/Social/instagram.svg" alt="ankitrana_09" height="50" width="50" /></a>`,
+      `<a href="https://instagram.com/ankitrana_09" target="blank"><img align="center" src="./assets/logos/instagram.png" alt="ankitrana_09" height="50" width="50" /></a>`,
       -9,
       2.9,
       3.1
@@ -397,7 +393,7 @@ class App {
     // Leetcode
     this.leetcode = cssObject(
       "Marker",
-      `<a href="https://www.leetcode.com/ankitrana_09" target="blank"><img align="center" src="https://raw.githubusercontent.com/rahuldkjain/github-profile-readme-generator/master/src/images/icons/Social/leet-code.svg" alt="ankitrana_09" height="50" width="50" /></a>`,
+      `<a href="https://www.leetcode.com/ankitrana_09" target="blank"><img align="center" src="./assets/logos/leetcode.png" alt="ankitrana_09" height="50" width="50" /></a>`,
       -9,
       2.9,
       3.1 + 1.7
@@ -407,55 +403,57 @@ class App {
     // GeeksForGeeks
     this.gfg = cssObject(
       "Marker",
-      `<a href="https://auth.geeksforgeeks.org/user/ankitrana5000nd/practice" target="blank"><img align="center" src="https://cdn.jsdelivr.net/npm/simple-icons@3.13.0/icons/geeksforgeeks.svg" alt="ankitrana_09" height="50" width="50" /></a>`,
+      `<a href="https://auth.geeksforgeeks.org/user/ankitrana5000nd/practice" target="blank"><img align="center" src="./assets/logos/geeksforgeeks.svg" alt="ankitrana_09" height="50" width="50" /></a>`,
       -9,
       2.9,
       3.1 - 1.7
     );
     this.cssScene.add(this.gfg);
 
-    // Connect
-    this.connect = cssObject("headings", `<h4>My Profiles<h4>`, -10, 4.2, 3.1);
-    this.cssScene.add(this.connect);
-
-    // Projects
-    this.project = cssObject("headings", `<h4>My Projects<h4>`, -8.5, 4.8, -10);
-    this.project.rotation.y = Math.PI * 2;
-    this.cssScene.add(this.project);
-
     // Languages Use
     const profile = document.createElement("div");
     profile.className = "profile";
-    profile.innerHTML = `<h3 align="left">Languages and Tools:</h3><a href="https://getbootstrap.com" target="_blank"> <img src="https://raw.githubusercontent.com/devicons/devicon/master/icons/bootstrap/bootstrap-plain-wordmark.svg" alt="bootstrap" width="60" height="60"/> </a> <a href="https://www.w3schools.com/css/" target="_blank"> <img src="https://raw.githubusercontent.com/devicons/devicon/master/icons/css3/css3-original-wordmark.svg" alt="css3" width="60" height="60"/> </a> <a href="https://dart.dev" target="_blank"> <img src="https://www.vectorlogo.zone/logos/dartlang/dartlang-icon.svg" alt="dart" width="60" height="60"/> </a><a href="https://firebase.google.com/" target="_blank"> <img src="https://www.vectorlogo.zone/logos/firebase/firebase-icon.svg" alt="firebase" width="60" height="60"/> </a> <a href="https://flutter.dev" target="_blank"> <img src="https://www.vectorlogo.zone/logos/flutterio/flutterio-icon.svg" alt="flutter" width="60" height="60"/> </a> <a href="https://git-scm.com/" target="_blank"> <img src="https://www.vectorlogo.zone/logos/git-scm/git-scm-icon.svg" alt="git" width="60" height="60"/> </a> <a href="https://heroku.com" target="_blank"> <img src="https://www.vectorlogo.zone/logos/heroku/heroku-icon.svg" alt="heroku" width="60" height="60"/> </a> <a href="https://www.w3.org/html/" target="_blank"> <img src="https://raw.githubusercontent.com/devicons/devicon/master/icons/html5/html5-original-wordmark.svg" alt="html5" width="60" height="60"/> </a> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript" target="_blank"> <img src="https://raw.githubusercontent.com/devicons/devicon/master/icons/javascript/javascript-original.svg" alt="javascript" width="60" height="60"/> </a> </a> <a href="https://www.mysql.com/" target="_blank"> <img src="https://raw.githubusercontent.com/devicons/devicon/master/icons/mysql/mysql-original-wordmark.svg" alt="mysql" width="60" height="60"/> </a> <a href="https://opencv.org/" target="_blank"> <img src="https://www.vectorlogo.zone/logos/opencv/opencv-icon.svg" alt="opencv" width="60" height="60"/> </a> <a href="https://www.postgresql.org" target="_blank"> <img src="https://raw.githubusercontent.com/devicons/devicon/master/icons/postgresql/postgresql-original-wordmark.svg" alt="postgresql" width="60" height="60"/> </a> <a href="https://www.python.org" target="_blank"> <img src="https://raw.githubusercontent.com/devicons/devicon/master/icons/python/python-original.svg" alt="python" width="60" height="60"/> </a> <a href="https://www.selenium.dev" target="_blank"> <img src="https://raw.githubusercontent.com/detain/svg-logos/780f25886640cef088af994181646db2f6b1a3f8/svg/selenium-logo.svg" alt="selenium" width="60" height="60"/> </a>`;
+    profile.innerHTML = `<h3 align="left">Languages and Tools:</h3><a href="https://getbootstrap.com" target="_blank"> <img src="./assets/logos/bootstrap.png" alt="bootstrap" width="60" height="60"/> </a> <a href="https://www.w3schools.com/css/" target="_blank"> <img src="./assets/logos/css.png" alt="css3" width="60" height="60"/> </a> <a href="https://dart.dev" target="_blank"> <img src="./assets/logos/dartlang-icon.svg" alt="dart" width="60" height="60"/> </a><a href="https://firebase.google.com/" target="_blank"> <img src="./assets/logos/firebase-icon.svg" alt="firebase" width="60" height="60"/> </a> <a href="https://flutter.dev" target="_blank"> <img src="./assets/logos/flutterio-icon.svg" alt="flutter" width="60" height="60"/> </a> <a href="https://git-scm.com/" target="_blank"> <img src="./assets/logos/git-scm-icon.svg" alt="git" width="60" height="60"/> </a> <a href="https://heroku.com" target="_blank"> <img src="./assets/logos/heroku-icon.svg" alt="heroku" width="60" height="60"/> </a> <a href="https://www.w3.org/html/" target="_blank"> <img src="./assets/logos/html-5.png" alt="html5" width="60" height="60"/> </a> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript" target="_blank"> <img src="./assets/logos/javascript.png" alt="javascript" width="60" height="60"/> </a> </a> <a href="https://www.mysql.com/" target="_blank"> <img src="./assets/logos/mysql.svg" alt="mysql" width="60" height="60"/> </a> <a href="https://opencv.org/" target="_blank"> <img src="./assets/logos/opencv-icon.svg" alt="opencv" width="60" height="60"/> </a> <a href="https://www.postgresql.org" target="_blank"> <img src="./assets/logos/postgresql.png" alt="postgresql" width="60" height="60"/> </a> <a href="https://www.python.org" target="_blank"> <img src="./assets/logos/python.png" alt="python" width="60" height="60"/> </a> <a href="https://www.selenium.dev" target="_blank"> <img src="./assets/logos/selenium.png" alt="selenium" width="60" height="60"/> </a>`;
     const profileScreen = new CSS3DObject(profile);
     profileScreen.scale.set(0.015, 0.015, 0.015);
     profileScreen.rotation.y = 4.7;
     profileScreen.position.set(10, 6.4, -1.47);
     this.cssScene.add(profileScreen);
 
-      
-    // const tween1 = new TWEEN.Tween(this.cube1.position)
-    //   .to({ x: 0,y:5,z:0 }, 2000)
-    //   .delay(100);
-    // const tween2 = new TWEEN.Tween(this.cube1.position)
-    //   .to({ x: 0,y:0,z:0  }, 2000)
-    //   .delay(100);
-    // tween1.chain(tween2);
-    // tween2.chain(tween1);
+    // Description
+    // this.a = cssObject("description", `<b>VIAM TECHNOLOGIES</b>
+    // <p>Frontend Developer</p>
+    // <span class="content">
+    // Designed a platform for helping students by providing
+    // them personal coaching, creating customized projects
+    // on any technology.
+    // </span>`,0,0,0);
+    // this.a.rotation.z = Math.PI / 2;
+    // this.a.rotation.y = Math.PI;
+    // this.a.rotation.x = Math.PI / 2;
+    // this.a.position.set(8.1,-0.1,0);
+    // this.cssScene.add(this.a);
 
-    // tween1.start();
-    // tween2.start();
-
+    // this.b = cssObject("description", `<b>PUTATOE SOLUTIONS PVT. LTD.</b>
+    // <p>Backend Developer</p>
+    // <span class="content">
+    // Putatoe is a private company that promises to give you that entire facility in just one click. On this site, you will find all that is necessary to you in a single platform and with various offers and prices that are affordable by all.
+    // </span>`,0,0,0);
+    // this.b.rotation.z = Math.PI / 2;
+    // this.b.rotation.y = Math.PI;
+    // this.b.rotation.x = Math.PI / 2;
+    // this.b.position.set(8.1,-0.1,3.7);
+    // this.cssScene.add(this.b);
 
     // Frame1
-    const frame1 = frame3D(0.1, 4.2, 2, itachiPos);
-    frame1.position.set(10, 2.8, 4);
-    this.scene.add(frame1);
+    // const frame1 = frame3D(0.1, 4.2, 2, itachiPos);
+    // frame1.position.set(10, 2.8, 4);
+    // this.scene.add(frame1);
 
     // Frame2
-    const frame = frame3D(0.1, 4.2, 2, sasukePos);
-    frame.position.set(10, 2.8, -4.3);
-    this.scene.add(frame);
+    // const frame = frame3D(0.1, 4.2, 2, sasukePos);
+    // frame.position.set(10, 2.8, -4.3);
+    // this.scene.add(frame);
 
     // Lights
     const light = new THREE.DirectionalLight(0xffffff, 0.5);
@@ -469,19 +467,100 @@ class App {
     this.scene.add(light1);
     this.scene.add(light1.target);
 
-    // GUI Interface
-    // this.instaFolder = this.gui.addFolder("Instagram Lights");
-    // this.mapFolder = this.gui.addFolder("Map Lights");
-    // this.weatherFolder = this.gui.addFolder("Weather");
-    // this.instaFolder.add(instaLight.position, "x", -9, 9);
-    // this.instaFolder.add(instaLight.position, "y", 0, 10);
-    // this.instaFolder.add(instaLight.position, "z", 0, 10);
-    // this.mapFolder.add(frame.position, "x", -9, 9);
-    // this.mapFolder.add(frame.position, "y", 0, 10);
-    // this.mapFolder.add(frame.position, "z", -10, 10);
-
     // Load Sound
     this.loadSFX();
+
+    this.mass = 100;
+
+    this.plant_body = new CANNON.Body({
+      shape: new CANNON.Cylinder(1.5, 1.5, 4.4, 10),
+      mass: this.mass,
+    });
+    this.plant_body.position.set(8, 2.4, -3.8);
+    this.world.addBody(this.plant_body);
+
+    this.console_body = new CANNON.Body({
+      shape: new CANNON.Box(new CANNON.Vec3(1.4, 2.1, 1)),
+      mass: this.mass,
+    });
+    this.console_body.position.set(-8.5, 2.4, -8.9);
+    this.world.addBody(this.console_body);
+
+    this.social_body = new CANNON.Body({
+      shape: new CANNON.Box(new CANNON.Vec3(0.8, 2, 2.2)),
+      mass: this.mass,
+    });
+    this.social_body.position.set(-9.1, 2.14, 3.1);
+    this.world.addBody(this.social_body);
+
+    this.lapras_body = new CANNON.Body({
+      shape: new CANNON.Box(new CANNON.Vec3(1.5, 2, 2)),
+      mass: this.mass,
+    });
+    this.lapras_body.position.set(-8.4, 2.21, 7.6);
+    this.world.addBody(this.lapras_body);
+
+    this.sudo_body = new CANNON.Body({
+      shape: new CANNON.Box(new CANNON.Vec3(1, 2, 1.4)),
+      mass: this.mass,
+    });
+    this.sudo_body.position.set(-8.9, 2.2, -1);
+    this.world.addBody(this.sudo_body);
+
+    this.earth_stand = new CANNON.Body({
+      shape: new CANNON.Cylinder(1.1, 1.1, 1.6, 10),
+      mass: this.mass,
+    });
+    this.earth_stand.position.set(8, 0.9, -7.5);
+    this.world.addBody(this.earth_stand);
+
+    this.vision_body = new CANNON.Body({
+      shape: new CANNON.Box(new CANNON.Vec3(3.8, 1, 0.4)),
+      mass: this.mass,
+    });
+    this.vision_body.position.set(-0.4, 1.14, -6.74);
+    this.world.addBody(this.vision_body);
+
+    this.video2 = document.createElement("video");
+    this.video2.setAttribute("loop", true);
+    this.video2.src = "./video/Viam.mp4";
+    this.video2.load();
+
+    let videoTexture2 = new THREE.VideoTexture(this.video2);
+    videoTexture2.minFilter = THREE.LinearFilter;
+    videoTexture2.magFilter = THREE.LinearFilter;
+
+    // Internship Screen
+    const screen2In = new THREE.Mesh(
+      new THREE.PlaneBufferGeometry(5.4, 3),
+      new THREE.MeshBasicMaterial({
+        map: videoTexture2,
+        shading: THREE.FlatShading,
+        side: THREE.FrontSide,
+      })
+    );
+    screen2In.position.set(9.85, 3, 1.8);
+    screen2In.rotation.y = -1.57;
+    this.scene.add(screen2In);
+
+    // Avatar
+    const cube = frame3D(0.02, 1.8, 1.8, avatar);
+    cube.position.set(-10, 6, 5);
+    this.scene.add(cube);
+
+    // Football
+    //   this.football = new THREE.Mesh(
+    //     new THREE.SphereBufferGeometry(0.8,30,30),
+    //     new THREE.MeshBasicMaterial({map:this.footballT})
+    //   )
+    //   this.scene.add(this.football);
+
+    //   this.sphereBody = new CANNON.Body({
+    //     mass: 1, // kg
+    //     position: new CANNON.Vec3(0, 1, -2), // m
+    //     shape: new CANNON.Sphere(0.8)
+    //  });
+    //  this.world.addBody(this.sphereBody);
 
     // Binders
     window.addEventListener("resize", this.resize.bind(this));
@@ -490,9 +569,11 @@ class App {
         let element = e.target;
         if (element.getAttribute("class") === "videoClass") {
           this.video.src = element.getAttribute("path");
+          this.video.play();
         }
       });
       window.addEventListener("keydown", this.move.bind(this));
+      window.addEventListener("keydown", this.movePlayer.bind(this));
       window.addEventListener("keyup", this.removeAnimation.bind(this));
       window.addEventListener("keypress", this.update.bind(this));
       window.addEventListener(
@@ -524,7 +605,7 @@ class App {
 `;
     this.cssObjectW = new CSS3DObject(this.weather);
     this.cssObjectW.scale.set(0.015, 0.015, 0.015);
-    this.cssObjectW.rotation.y = 4.8;
+    this.cssObjectW.rotation.y = -1.57;
     this.cssObjectW.position.x = 10;
     this.cssObjectW.position.y = 3.2;
     this.cssObjectW.position.z = 7.7;
@@ -535,8 +616,6 @@ class App {
     this.camera.aspect = window.innerWidth / window.innerHeight;
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(window.innerWidth, window.innerHeight);
-    this.camera2.aspect = this.insetWidth / this.insetHeight;
-    this.camera2.updateProjectionMatrix();
     this.cssRenderer.setSize(window.innerWidth, window.innerHeight);
   }
 
@@ -546,6 +625,10 @@ class App {
     this.previousTime = this.elapsedTime;
     this.water.material.uniforms["time"].value += 1.0 / 150.0;
 
+    // this.football.position.copy(this.sphereBody.position);
+    // this.football.quaternion.copy(this.sphereBody.quaternion);
+
+    this.world.step(1 / 60, this.deltaTime, 3);
     const t = Date.now() * 0.001;
 
     if (this.instConnect != undefined) {
@@ -572,20 +655,41 @@ class App {
       this.mixer3.update(this.deltaTime);
     }
 
-    if(this.laptopMesh != null){
-      this.laptopMesh.rotation.x = Math.sin(t) * 0.045;
-      this.laptopMesh.position.y = 1.4 + Math.sin(t) *0.025;
+    if (this.mixer4 != null) {
+      this.mixer4.update(this.deltaTime);
     }
 
+    if (this.mixer5 != null) {
+      this.mixer5.update(this.deltaTime);
+    }
+
+    if (this.mixer6 != null) {
+      this.mixer6.update(this.deltaTime);
+    }
+
+    this.fixPosition();
+
+    if (this.character != null) {
+      this.character.position.set(
+        this.player.position.x,
+        this.player.position.y - 1.09,
+        this.player.position.z
+      );
+      this.cssObject.position.set(
+        this.player.position.x,
+        this.player.position.y + 0.9,
+        this.player.position.z
+      );
+    }
+
+    this.gateOpenClose();
 
     this.cssRenderer.render(this.cssScene, this.camera);
 
     this.showSlider();
-
     // this.resetMaterial();
     // this.hoverpieces();
     this.update();
-
     this.renderer.clear();
     this.renderer.setClearColor(0x000000, 0);
     this.renderer.setViewport(0, 0, window.innerWidth, window.innerHeight);
@@ -593,18 +697,81 @@ class App {
     this.renderer.render(this.scene, this.camera);
     this.stats.update();
     TWEEN.update();
+    // this.cannonDebugger.update();
+  }
+
+  fixPosition() {
+    this.vision_body.position.set(-0.4, 1.14, -6.74);
+    this.plant_body.position.set(8, 2.4, -3.8);
+    this.console_body.position.set(-8.5, 2.4, -8.9);
+    this.sudo_body.position.set(-8.9, 2.2, -1);
+    this.social_body.position.set(-9.1, 2.14, 3.1);
+    this.earth_stand.position.set(8, 0.9, -7.5);
+    this.lapras_body.position.set(-8.4, 2.21, 7.6);
+  }
+
+  gateOpenClose() {
+    if (this.character != null && this.character.position.z > 7) {
+      const gateAnim = new TWEEN.Tween(this.wallFP.position)
+        .to(
+          { x: 15, y: this.wallFP.position.y, z: this.wallFP.position.z },
+          1000
+        )
+        .easing(TWEEN.Easing.Quadratic.Out);
+
+      gateAnim.start();
+
+      const gateAnim2 = new TWEEN.Tween(this.wallFRP.position)
+        .to(
+          { x: -15, y: this.wallFRP.position.y, z: this.wallFRP.position.z },
+          1000
+        )
+        .easing(TWEEN.Easing.Quadratic.Out);
+      gateAnim2.start();
+      this.wallF.position.copy(this.wallFP.position);
+      this.wallFR.position.copy(this.wallFRP.position);
+    } else {
+      const gateAnim = new TWEEN.Tween(this.wallFP.position)
+        .to(
+          { x: 5, y: this.wallFP.position.y, z: this.wallFP.position.z },
+          1000
+        )
+        .easing(TWEEN.Easing.Quadratic.Out);
+      gateAnim.start();
+      const gateAnim2 = new TWEEN.Tween(this.wallFRP.position)
+        .to(
+          { x: -5, y: this.wallFRP.position.y, z: this.wallFRP.position.z },
+          1000
+        )
+        .easing(TWEEN.Easing.Quadratic.Out);
+      gateAnim2.start();
+
+      this.wallF.position.copy(this.wallFP.position);
+      this.wallFR.position.copy(this.wallFRP.position);
+    }
   }
 
   update() {
+
     if (event != undefined) {
-      if (event.key == "p" || event.key == "P") {
+      if (event.key == "x" || event.key == "X") {
         this.video.play();
-      } else if (event.key == " ") {
+        this.video2.play();
+        this.sfx.play("SeaSound");
+        const info_panel = document.getElementById("info");
+        info_panel.style.display = "flex"; 
+        if (info_panel.style.display == "flex" ) {
+          info_panel.style.display = "none";
+        }
+      }
+
+      if (event.key == " ") {
         this.video.pause();
       }
-      if (event.key == "o" || event.key == "O") {
-        this.sfx.play("SeaSound");
-      }
+
+      // if (event.key == "l" || event.key == "L"){
+      //   voice()
+      // }
     }
   }
 
@@ -640,9 +807,9 @@ class App {
       "./models/Xbot.glb",
       (gltf) => {
         this.actions = gltf.animations;
-        console.log(this.actions)
         this.character = gltf.scene;
         this.character.position.y = 0.12;
+        this.anim = {};
 
         this.character.traverse(function (object) {
           if (object.isMesh) {
@@ -651,11 +818,15 @@ class App {
           }
         });
 
-        // const skeleton = new THREE.SkeletonHelper(this.character);
-        // skeleton.visible = true;
-        // this.scene.add(skeleton);
-
         this.mixer = new THREE.AnimationMixer(gltf.scene);
+
+        var names = ["idle", "run", "walk"];
+        for (var i = 0; i < this.actions.length; i++) {
+          var clip = this.actions[i];
+          var actions = this.mixer.clipAction(clip);
+          this.anim[names[i]] = actions;
+        }
+
         this.loadingbar.visible = false;
         this.scene.add(gltf.scene);
         this.modelLoaded = true;
@@ -670,52 +841,147 @@ class App {
   }
 
   get_console(loader) {
-    loader.load("./models/console/scene.gltf", (gltf4) => {
-      gltf4.scene.scale.set(1.5, 1.5, 2);
-      gltf4.scene.position.set(-8.5, 2.4, -9);
-      gltf4.scene.traverse(function (object) {
+    loader.load("./models/console/scene.gltf", (gltf) => {
+      gltf.scene.scale.set(1.5, 1.5, 2);
+      gltf.scene.position.set(-8.5, 2.4, -9);
+      gltf.scene.traverse(function (object) {
         if (object.isMesh) {
           object.castShadow = true;
           object.receiveShadow = false;
         }
       });
-      gltf4.scene.rotation.y = Math.PI;
-      this.scene.add(gltf4.scene);
+      gltf.scene.rotation.y = Math.PI;
+      this.scene.add(gltf.scene);
+    });
+  }
+
+  get_bot(loader) {
+    loader.load("./models/Ybot.glb", (gltf) => {
+      gltf.scene.traverse(function (object) {
+        if (object.isMesh) {
+          object.castShadow = true;
+          object.receiveShadow = false;
+        }
+      });
+      this.mixer6 = new THREE.AnimationMixer(gltf.scene);
+      var clip1 = gltf.animations[0];
+      var action1 = this.mixer6.clipAction(clip1);
+      action1.play();
+      gltf.scene.rotation.y = -1.6;
+      gltf.scene.position.set(2, 0.2, 8);
+      this.scene.add(gltf.scene);
     });
   }
 
   get_earth(loader) {
-    loader.load("./models/earth/scene.gltf", (gltf5) => {
-      gltf5.scene.scale.set(1, 1, 1);
-      gltf5.scene.position.set(8, 3.5, -7.5);
-      gltf5.scene.traverse(function (object) {
+    loader.load("./models/earth/scene.gltf", (gltf) => {
+      gltf.scene.scale.set(1, 1, 1);
+      gltf.scene.position.set(8, 3.5, -7.5);
+      gltf.scene.traverse(function (object) {
         if (object.isMesh) {
           object.castShadow = true;
           object.receiveShadow = false;
         }
       });
-      this.mixer2 = new THREE.AnimationMixer(gltf5.scene);
-      var clip1 = gltf5.animations[0];
+      this.mixer2 = new THREE.AnimationMixer(gltf.scene);
+      var clip1 = gltf.animations[0];
       var action1 = this.mixer2.clipAction(clip1);
       action1.play();
-      gltf5.scene.rotation.y = Math.PI;
-      this.scene.add(gltf5.scene);
+      gltf.scene.rotation.y = Math.PI;
+      this.scene.add(gltf.scene);
     });
   }
 
   get_social(loader) {
-    loader.load("./models/social.glb", (gltf7) => {
-      this.social = gltf7.scene;
-      this.social2 = gltf7.scene;
-      gltf7.scene.scale.set(60, 60, 60);
-      gltf7.scene.position.set(-9, 0.67, 3.1);
-      gltf7.scene.traverse(function (object) {
+    loader.load("./models/social.glb", (gltf) => {
+      this.social = gltf.scene;
+      this.social2 = gltf.scene;
+      gltf.scene.scale.set(60, 60, 60);
+      gltf.scene.position.set(-9, 0.67, 3.1);
+      gltf.scene.traverse(function (object) {
         if (object.isMesh) {
           object.castShadow = true;
           object.receiveShadow = false;
         }
       });
-      this.scene.add(gltf7.scene);
+      this.scene.add(gltf.scene);
+    });
+  }
+
+  load_google(loader) {
+    loader.load("./models/google/scene.glb", (gltf) => {
+      gltf.scene.traverse(function (object) {
+        if (object.isMesh) {
+          object.castShadow = true;
+          object.receiveShadow = false;
+        }
+      });
+      gltf.scene.rotation.y = Math.PI / 2;
+      gltf.scene.position.set(0, 0.11, 2);
+      this.scene.add(gltf.scene);
+    });
+  }
+
+  viam(loader) {
+    loader.load("./models/Text/Viam.glb", (gltf) => {
+      gltf.scene.traverse(function (object) {
+        if (object.isMesh) {
+          object.castShadow = true;
+          object.receiveShadow = false;
+        }
+      });
+      gltf.scene.scale.set(0.3, 0.3, 0.3);
+      gltf.scene.position.set(6, 0.38, 0);
+      this.scene.add(gltf.scene);
+    });
+  }
+
+  plant_text(loader) {
+    loader.load("./models/Text/Plant.glb", (gltf) => {
+      gltf.scene.traverse(function (object) {
+        if (object.isMesh) {
+          object.castShadow = true;
+          object.receiveShadow = false;
+        }
+      });
+      gltf.scene.scale.set(0.25, 0.25, 0.25);
+      gltf.scene.rotation.y = Math.PI;
+      gltf.scene.position.set(6.3, 0.16, -3.3);
+      this.scene.add(gltf.scene);
+    });
+  }
+
+  api(loader) {
+    loader.load("./models/Text/API.glb", (gltf) => {
+      gltf.scene.traverse(function (object) {
+        if (object.isMesh) {
+          object.castShadow = true;
+          object.receiveShadow = false;
+        }
+      });
+      gltf.scene.scale.set(0.25, 0.25, 0.25);
+      gltf.scene.rotation.y = Math.PI;
+      gltf.scene.position.set(9.4, 0.16, 8.2);
+      this.scene.add(gltf.scene);
+
+      const n = this.gui.addFolder("Cube");
+      n.add(gltf.scene.position, "x", -10, 10);
+      n.add(gltf.scene.position, "y", -10, 10);
+      n.add(gltf.scene.position, "z", -10, 10);
+    });
+  }
+
+  putatoe(loader) {
+    loader.load("./models/Text/Putatoe.glb", (gltf) => {
+      gltf.scene.traverse(function (object) {
+        if (object.isMesh) {
+          object.castShadow = true;
+          object.receiveShadow = false;
+        }
+      });
+      gltf.scene.scale.set(0.3, 0.3, 0.3);
+      gltf.scene.position.set(6, 0.38, 4.4);
+      this.scene.add(gltf.scene);
     });
   }
 
@@ -736,15 +1002,37 @@ class App {
 
   sudowoodo(loader) {
     loader.load("./models/Sudowoodo/scene.gltf", (gltf) => {
-      gltf.scene.scale.set(2.4, 2.4, 2.4);
-      gltf.scene.position.set(-8.9, 0.1, -1);
+      gltf.scene.scale.set(3, 3, 3);
+      gltf.scene.position.set(-8.9, 0.1, -1.4);
       gltf.scene.traverse(function (object) {
         if (object.isMesh) {
           object.castShadow = true;
           object.receiveShadow = false;
         }
       });
+
       gltf.scene.rotation.y = Math.PI / 2;
+      this.scene.add(gltf.scene);
+    });
+  }
+  f;
+
+  load_plant(loader) {
+    loader.load("./models/plant/source/PlantCapsule_Substance.gltf", (gltf) => {
+      this.plant = gltf.scene;
+      gltf.scene.scale.set(9, 9, 9);
+      gltf.scene.position.set(8, 0.7, -3.8);
+      gltf.scene.rotation.y = 5.6;
+      gltf.scene.traverse(function (object) {
+        if (object.isMesh) {
+          object.castShadow = true;
+          object.receiveShadow = false;
+        }
+      });
+      this.mixer5 = new THREE.AnimationMixer(gltf.scene);
+      var clip1 = gltf.animations[0];
+      var action1 = this.mixer5.clipAction(clip1);
+      action1.play();
       this.scene.add(gltf.scene);
     });
   }
@@ -764,18 +1052,17 @@ class App {
     });
   }
 
-  laptop(loader) {
-    loader.load("./models/Laptop/scene.gltf", (gltf) => {
-      this.laptopMesh = gltf.scene;
-      gltf.scene.scale.set(0.075, 0.075, 0.075);
-      gltf.scene.position.set(7.8, 2, 0);
+  screen2(loader) {
+    loader.load("./models/screen2.glb", (gltf) => {
       gltf.scene.traverse(function (object) {
         if (object.isMesh) {
           object.castShadow = true;
           object.receiveShadow = false;
         }
       });
-      gltf.scene.rotation.y = -Math.PI / 2;
+      gltf.scene.scale.set(1.5, 1.5, 1);
+      gltf.scene.position.set(9.9, 3, 1.8);
+      gltf.scene.rotation.y = -1.57;
       this.scene.add(gltf.scene);
     });
   }
@@ -784,10 +1071,10 @@ class App {
     loader.load("./models/ufo/scene.gltf", (gltf) => {
       this.ufo = gltf.scene;
       gltf.scene.scale.set(0.5, 0.5, 0.5);
-      gltf.scene.position.set(8,0.6,7);
+      gltf.scene.position.set(8, 0.6, 7);
       gltf.scene.traverse(function (object) {
         if (object.isMesh) {
-          object.castShadow = true;
+          // object.castShadow = true;
           object.receiveShadow = false;
         }
       });
@@ -800,14 +1087,24 @@ class App {
       gltf.scene.rotation.y = -Math.PI / 2;
       this.scene.add(gltf.scene);
 
-      const tween1 = new TWEEN.Tween(this.ufo.position).to({x:-8.4,y:8.1,z:-7.6},4000).delay(100);
-      const tween2 = new TWEEN.Tween(this.ufo.position).to({x:-8.4,y:8.1,z:7.9},4000).delay(100);
+      const tween0 = new TWEEN.Tween(this.ufo.position)
+        .to(
+          { x: gltf.scene.position.x, y: 8.1, z: gltf.scene.position.z },
+          4000
+        )
+        .delay(100);
+      const tween1 = new TWEEN.Tween(this.ufo.position)
+        .to({ x: -8.4, y: 8.1, z: -7.6 }, 4000)
+        .delay(100);
+      const tween2 = new TWEEN.Tween(this.ufo.position)
+        .to({ x: -8.4, y: 8.1, z: 7.9 }, 4000)
+        .delay(100);
+      tween0.chain(tween1);
       tween1.chain(tween2);
       tween2.chain(tween1);
-      tween1.start()
+      tween0.start();
     });
   }
-
 
   get_tv(loader) {
     loader.load("./models/tv/scene.gltf", (gltf8) => {
@@ -823,56 +1120,250 @@ class App {
     });
   }
 
+  wallsAndGround(ground) {
+    // Pillars
+    this.pillar1 = new THREE.Mesh(
+      new THREE.BoxBufferGeometry(1, 1, 20),
+      new THREE.MeshPhongMaterial({})
+    );
+    this.pillar1.position.set(9.54, 9.59, 0.01);
+    this.scene.add(this.pillar1);
+
+    this.pillar2 = new THREE.Mesh(
+      new THREE.BoxBufferGeometry(1, 1, 20),
+      new THREE.MeshPhongMaterial()
+    );
+    this.pillar2.position.set(-9.54, 9.59, 0.01);
+    this.scene.add(this.pillar2);
+
+    // Ceiling
+    this.cd1 = new THREE.Mesh(
+      new THREE.BoxBufferGeometry(19, 1, 1),
+      new THREE.MeshPhongMaterial({})
+    );
+    this.cd1.position.set(0, 9.59, -9.52);
+    this.scene.add(this.cd1);
+
+    this.cd2 = new THREE.Mesh(
+      new THREE.BoxBufferGeometry(19, 1, 1),
+      new THREE.MeshPhongMaterial()
+    );
+    this.cd2.position.set(0, 9.59, 9.52);
+    this.scene.add(this.cd2);
+
+    // Ceiling Physics
+    var ceilBody = new CANNON.Body({
+      shape: new CANNON.Box(new CANNON.Vec3(10, 10, 0.1)),
+      mass: 0,
+    });
+    ceilBody.position.y = 10.1;
+    ceilBody.quaternion.setFromAxisAngle(
+      new CANNON.Vec3(1, 0, 0),
+      -Math.PI * 0.5
+    );
+    this.world.addBody(ceilBody);
+
+    // Celings
+    const ceiling = new THREE.Mesh(
+      new THREE.PlaneBufferGeometry(20, 20),
+      new THREE.MeshPhongMaterial({ side: THREE.DoubleSide, color: "#002A32" })
+    );
+    ceiling.receiveShadow = true;
+    ceiling.position.copy(ceilBody.position);
+    ceiling.quaternion.copy(ceilBody.quaternion);
+    this.scene.add(ceiling);
+
+    // Plane Physics
+    var groundBody = new CANNON.Body({
+      shape: new CANNON.Box(new CANNON.Vec3(10, 10, 0.1)),
+      mass: 0,
+    });
+    groundBody.position.y = 0.1;
+    groundBody.quaternion.setFromAxisAngle(
+      new CANNON.Vec3(1, 0, 0),
+      -Math.PI * 0.5
+    );
+    this.world.addBody(groundBody);
+
+    // Plane
+    const plane = new THREE.Mesh(
+      new THREE.PlaneBufferGeometry(20, 20),
+      new THREE.MeshStandardMaterial({
+        side: THREE.DoubleSide,
+        map: ground,
+        envMap: this.scene.environment,
+      })
+    );
+    plane.receiveShadow = true;
+    plane.position.copy(groundBody.position);
+    plane.quaternion.copy(groundBody.quaternion);
+    this.scene.add(plane);
+
+    // WallR Physics
+    var WallRP = new CANNON.Body({
+      shape: new CANNON.Box(new CANNON.Vec3(10, 5, 0.1)),
+      mass: 0,
+    });
+    WallRP.position.set(10, 5.1, 0);
+    WallRP.quaternion.setFromAxisAngle(new CANNON.Vec3(0, 1, 0), -Math.PI / 2);
+    this.world.addBody(WallRP);
+
+    // wallR
+    const wallR = new THREE.Mesh(
+      new THREE.PlaneBufferGeometry(20, 10),
+      new THREE.MeshPhongMaterial({})
+    );
+    wallR.receiveShadow = true;
+    wallR.position.copy(WallRP.position);
+    wallR.quaternion.copy(WallRP.quaternion);
+    this.scene.add(wallR);
+
+    // WallL Physics
+    var WallLP = new CANNON.Body({
+      shape: new CANNON.Box(new CANNON.Vec3(10, 5, 0.1)),
+      mass: 0,
+    });
+    WallLP.position.set(-10, 5.1, 0);
+    WallLP.quaternion.setFromAxisAngle(new CANNON.Vec3(0, 1, 0), Math.PI / 2);
+    this.world.addBody(WallLP);
+
+    // WallL
+    const wallL = new THREE.Mesh(
+      new THREE.PlaneBufferGeometry(20, 10),
+      new THREE.MeshPhongMaterial({}),
+      new THREE.MeshPhongMaterial({ color: 0x999999, depthWrite: false })
+    );
+    wallL.receiveShadow = true;
+    wallL.quaternion.copy(WallLP.quaternion);
+    wallL.position.copy(WallLP.position);
+    this.scene.add(wallL);
+
+    // WallB Physics
+    var WallBP = new CANNON.Body({
+      shape: new CANNON.Box(new CANNON.Vec3(10, 5, 0.1)),
+      mass: 0,
+    });
+    WallBP.position.set(0, 5.1, -10);
+    WallBP.quaternion.setFromAxisAngle(new CANNON.Vec3(0, 0, 1), Math.PI * 2);
+    this.world.addBody(WallBP);
+
+    // WallB
+    const wallB = new THREE.Mesh(
+      new THREE.PlaneBufferGeometry(20, 10),
+      new THREE.MeshPhongMaterial({ map: ground }),
+      new THREE.MeshPhongMaterial({ color: 0x999999, depthWrite: false })
+    );
+    wallB.receiveShadow = true;
+    wallB.position.copy(WallBP.position);
+    wallB.quaternion.copy(WallBP.quaternion);
+    this.scene.add(wallB);
+
+    // WallF Physics
+    this.wallFP = new CANNON.Body({
+      shape: new CANNON.Box(new CANNON.Vec3(5, 5, 0.1)),
+      mass: 0,
+    });
+    this.wallFP.quaternion.setFromAxisAngle(
+      new CANNON.Vec3(1, 0, 0),
+      Math.PI * 3
+    );
+    this.wallFP.position.set(5, 5.1, 10);
+    this.world.addBody(this.wallFP);
+
+    // WallF
+    this.wallF = new THREE.Mesh(
+      new THREE.PlaneBufferGeometry(10, 10),
+      new THREE.MeshPhongMaterial({
+        side: THREE.DoubleSide,
+        opacity: 0.5,
+        transparent: true,
+      })
+    );
+    this.wallF.receiveShadow = true;
+    this.wallF.position.copy(this.wallFP.position);
+    this.wallF.quaternion.copy(this.wallFP.quaternion);
+    this.scene.add(this.wallF);
+
+    // WallFR Physics
+    this.wallFRP = new CANNON.Body({
+      shape: new CANNON.Box(new CANNON.Vec3(5, 5, 0.1)),
+      mass: 0,
+    });
+    this.wallFRP.quaternion.setFromAxisAngle(
+      new CANNON.Vec3(1, 0, 0),
+      Math.PI * 3
+    );
+    this.wallFRP.position.set(-5, 5.1, 10);
+    this.world.addBody(this.wallFRP);
+
+    // WallFR
+    this.wallFR = new THREE.Mesh(
+      new THREE.PlaneBufferGeometry(10, 10),
+      new THREE.MeshPhongMaterial({
+        side: THREE.DoubleSide,
+        opacity: 0.5,
+        transparent: true,
+      })
+    );
+    this.wallFR.position.copy(this.wallFRP.position);
+    this.wallFR.quaternion.copy(this.wallFRP.quaternion);
+    this.wallFR.receiveShadow = true;
+    this.scene.add(this.wallFR);
+  }
+
+  movePlayer() {
+    this.action = this.anim["walk"];
+    document.onkeydown = (event) => {
+      switch (event.key) {
+        case "a":
+          this.angle += Math.PI / 30;
+          break;
+        case "d":
+          this.angle -= Math.PI / 30;
+          break;
+        case "w":
+          this.player.position.x += this.speed * Math.sin(this.angle);
+          this.player.position.z += this.speed * Math.cos(this.angle);
+          this.action.weight = 1;
+          if (this.action.timeScale == -1) {
+            this.action.timeScale = 1;
+          }
+          this.action.play();
+          this.controls.target.copy(this.player.position);
+          break;
+        case "s":
+          this.player.position.x -= this.speed * Math.sin(this.angle);
+          this.player.position.z -= this.speed * Math.cos(this.angle);
+          this.action.weight = 1;
+          this.action.timeScale = -1;
+          this.action.play();
+          this.controls.target.copy(this.player.position);
+          break;
+      }
+
+      this.character.quaternion.copy(this.player.quaternion);
+      this.player.quaternion.setFromAxisAngle(
+        new CANNON.Vec3(0, 1, 0),
+        this.angle
+      );
+      this.cssObject.quaternion.copy(this.player.quaternion);
+    };
+  }
+
   move() {
-    this.action = this.mixer.clipAction(this.actions[2]);
     var dir = new THREE.Vector3(0, 0, -0.06);
     dir.applyQuaternion(this.character.quaternion);
     switch (event.keyCode) {
       case 87: // W key
-        this.character.position.sub(dir);
         this.camera.position.sub(dir);
-        this.controls.target.copy(this.character.position);
-        this.camera2.position.set(
-          this.character.position.x,
-          this.character.position.y + 1.7,
-          this.character.position.z
-        );
-        this.action.weight = 1;
-        if (this.action.timeScale == -1) {
-          this.action.timeScale = 1;
-        }
-        this.action.play();
-        break;
-      case 83: // S key
-        this.character.position.add(dir);
-        this.camera.position.add(dir);
-        this.controls.target.copy(this.character.position);
-        this.camera2.position.set(
-          this.character.position.x,
-          this.character.position.y + 1.7,
-          this.character.position.z
-        );
-        this.action.weight = 1;
-        this.action.timeScale = -1;
-        this.action.play();
+
         break;
 
-      case 65: //left arrow key
-        this.character.rotation.y += Math.PI / 30;
-        this.camera2.rotation.y += Math.PI / 30;
-        break;
-      case 68: //right arrow key
-        this.character.rotation.y -= Math.PI / 30;
-        this.camera2.rotation.y -= Math.PI / 30;
+      case 83: // S key
+        this.camera.position.add(dir);
+
         break;
     }
-
-    this.cssObject.position.set(
-      this.character.position.x,
-      this.character.position.y + 2,
-      this.character.position.z
-    );
-    this.cssObject.quaternion.copy(this.character.quaternion);
   }
 
   stop() {
@@ -929,6 +1420,16 @@ class App {
   }
 }
 
+function cameraUpdate(camera, player) {
+  var offset = new THREE.Vector3(
+    player.position.x,
+    player.position.y + 6,
+    player.position.z + 3
+  );
+  camera.position.lerp(offset, 0.2);
+  camera.lookAt(player.position.x, player.position.y, player.position.z);
+}
+
 function cssObject(className, inhtml, x, y, z) {
   const object = document.createElement("div");
   object.className = className;
@@ -947,6 +1448,53 @@ function frame3D(x, y, z, texture) {
     new THREE.MeshBasicMaterial({ map: texture })
   );
   return object;
+}
+
+function createPlayer() {
+  const speederMaterial = new CANNON.Material("speederMaterial");
+  const speederBodyShape = new CANNON.Cylinder(0.6, 0.6, 2, 6);
+  const speederBody = new CANNON.Body({
+    mass: 10,
+    material: speederMaterial,
+    shape: speederBodyShape,
+  });
+  speederBody.position.set(0, 1.2, 0);
+  return speederBody;
+}
+
+function say(text) {
+  let voices = speechSynthesis.getVoices()[0];
+  let utterance = new SpeechSynthesisUtterance(text);
+  speechSynthesis.cancel();
+  speechSynthesis.speak(utterance);
+  return voices;
+}
+
+function voice() {
+  var speech = true;
+  window.SpeechRecognition =
+    window.SpeechRecognition || window.webkitSpeechRecognition;
+  const recognition = new SpeechRecognition();
+  recognition.addEventListener("result", (e) => {
+    const transcript = Array.from(e.results)
+      .map((result) => result[0])
+      .map((result) => result.transcript)
+      .join("");
+    console.log(transcript);
+    speak(transcript);
+  });
+
+  if (speech == true) {
+    recognition.start();
+    recognition.addEventListener("end", recognition.start);
+  }
+}
+
+function speak(message) {
+  var msg = new SpeechSynthesisUtterance(message);
+  var voices = window.speechSynthesis.getVoices();
+  msg.voice = voices[0];
+  window.speechSynthesis.speak(msg);
 }
 
 export { App };
