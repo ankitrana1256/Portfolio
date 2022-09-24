@@ -116,7 +116,6 @@ class App {
     ground.repeat.set(5, 5);
 
     const avatar = tloader.load("assets/images/avatar.jpg");
-    const certificate = tloader.load("assets/images/certificate.png");
 
     this.wallsAndGround(ground);
 
@@ -165,9 +164,6 @@ class App {
     this.controls.maxPolarAngle = Math.PI / 2.1;
     this.controls.minPolarAngle = 0;
 
-    // FPS Camera Window
-    this.insetWidth = window.innerHeight / 3;
-    this.insetHeight = window.innerHeight / 4;
 
     // Ocean
     const waterGeometry = new THREE.PlaneGeometry(10000, 10000);
@@ -539,12 +535,6 @@ class App {
     cube.position.set(-10, 6, 5);
     this.scene.add(cube);
 
-
-    // Certificate
-    const cube2 = frame3D(0.02, 3, 2, certificate);
-    cube2.position.set(-10, 6, -5);
-    this.scene.add(cube2);
-
     // Binders
     window.addEventListener("resize", this.resize.bind(this));
     if ((this.modelLoaded = true)) {
@@ -552,7 +542,6 @@ class App {
         let element = e.target;
         if (element.getAttribute("class") === "videoClass") {
           this.video.src = element.getAttribute("path");
-          this.sfx.stopAll();
           this.video.play();
 
         }
@@ -738,7 +727,6 @@ class App {
       if (event.key == "x" || event.key == "X") {
         this.video.play();
         this.video2.play();
-        this.sfx.play("SeaSound");
         const info_panel = document.getElementById("info");
         info_panel.style.display = "flex"; 
         if (info_panel.style.display == "flex" ) {
