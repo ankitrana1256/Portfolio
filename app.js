@@ -973,10 +973,10 @@ class App {
       gltf.scene.position.set(9.4, 0.16, 8.2);
       this.scene.add(gltf.scene);
 
-      const n = this.gui.addFolder("Cube");
-      n.add(gltf.scene.position, "x", -10, 10);
-      n.add(gltf.scene.position, "y", -10, 10);
-      n.add(gltf.scene.position, "z", -10, 10);
+      // const n = this.gui.addFolder("Cube");
+      // n.add(gltf.scene.position, "x", -10, 10);
+      // n.add(gltf.scene.position, "y", -10, 10);
+      // n.add(gltf.scene.position, "z", -10, 10);
     });
   }
 
