@@ -262,7 +262,7 @@ class App {
         bevelOffset: 1,
         bevelSegments: 12,
       });
-      this.vision = new THREE.Mesh(geometry, new THREE.MeshNormalMaterial());
+      this.vision = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial());
       this.vision.receiveShadow = true;
       this.vision.castShadow = true;
       this.vision.rotation.y = -1.57;
@@ -364,7 +364,7 @@ class App {
     // Instructions
     this.instruction = cssObject(
       "insplay",
-      `<p>Go to the console</p><p>Select any video to play</p><p>Press spacebar to pause the video</p><p>Change video from the console</p>`,
+      `<p>Press P to resume</p><p>Select any video to play</p><p>Press spacebar to pause the video</p><p>Change video from the console</p>`,
       -10,
       2.5,
       -5.9
@@ -569,7 +569,9 @@ class App {
         let element = e.target;
         if (element.getAttribute("class") === "videoClass") {
           this.video.src = element.getAttribute("path");
+          this.sfx.stopAll();
           this.video.play();
+
         }
       });
       window.addEventListener("keydown", this.move.bind(this));
@@ -752,7 +754,6 @@ class App {
   }
 
   update() {
-
     if (event != undefined) {
       if (event.key == "x" || event.key == "X") {
         this.video.play();
@@ -767,6 +768,13 @@ class App {
 
       if (event.key == " ") {
         this.video.pause();
+      }
+      if (event.key == "p" || event.key == "P") {
+        this.video.play();
+      }
+
+      if (event.key == "o" || event.key == "O") {
+        this.sfx.play("SeaSound");
       }
 
       // if (event.key == "l" || event.key == "L"){
