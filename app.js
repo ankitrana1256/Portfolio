@@ -364,7 +364,7 @@ class App {
     // Instructions
     this.instruction = cssObject(
       "insplay",
-      `<p>Press P to resume</p><p>Select any video to play</p><p>Press spacebar to pause the video</p><p>Change video from the console</p>`,
+      `<p>Press P to resume video</p><p>Select any video to play</p><p>Press spacebar to pause the video</p><p>Change video from the console</p>`,
       -10,
       2.5,
       -5.9
@@ -570,6 +570,7 @@ class App {
         if (element.getAttribute("class") === "videoClass") {
           this.video.src = element.getAttribute("path");
           this.sfx.stopAll();
+          this.video.setAttribute("loop", false);
           this.video.play();
 
         }
