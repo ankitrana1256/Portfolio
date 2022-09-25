@@ -3,7 +3,6 @@ import * as CANNON from "./libs/cannon-es.js";
 import CannonDebugger from "./libs/cannon-es-debugger.js";
 import { CSS3DRenderer, CSS3DObject } from "./libs/CSS3DRenderer.js";
 import { OrbitControls } from "./libs/three128/OrbitControls.js";
-import { LoadingBar } from "./libs/LoadingBar.js";
 import { GLTFLoader } from "./libs/three128/GLTFLoader.js";
 import { Water } from "./libs/objects/Water.js";
 import { Sky } from "./libs/objects/Sky.js";
@@ -22,6 +21,21 @@ class App {
     this.world.solver.iterations = 6;
     this.world.defaultContactMaterial.contactEquationStiffness = 1e6;
     this.world.defaultContactMaterial.contactEquationRelaxation = 3;
+
+    // Loading Bar Manager
+    this.loadingManager = new THREE.LoadingManager();
+
+    this.loadingManager.onProgress = function(url,loaded,total){
+      var val = (loaded / total) * 100;
+      val = val.toFixed(1);
+      const getProgress = document.getElementById("start");
+      getProgress.innerHTML = `${val}%`;
+    }
+    
+    this.loadingManager.onLoad = function(){
+      const getProgress = document.getElementById("start");
+      getProgress.innerHTML = "Press X";
+    }
 
     // Materials
     this.defaultMaterial = new CANNON.Material("default");
@@ -129,11 +143,8 @@ class App {
     );
     this.cssScene.add(this.greet);
 
-    // Loading Bar
-    this.loadingbar = new LoadingBar();
-
     // Load Model
-    this.loader = new GLTFLoader();
+    this.loader = new GLTFLoader(this.loadingManager);
     this.loadGLTF(this.loader);
     this.get_console(this.loader);
     // this.get_bot(this.loader);
@@ -322,7 +333,7 @@ class App {
       this.vision.receiveShadow = true;
       this.vision.castShadow = true;
       this.vision.rotation.y = Math.PI;
-      this.vision.position.set(6, 5, 10);
+      this.vision.position.set(6, 6, 20);
       this.scene.add(this.vision);
     });
 
@@ -724,7 +735,8 @@ class App {
 
   update() {
     if (event != undefined) {
-      if (event.key == "x" || event.key == "X") {
+      let doc = document.getElementById("start").innerHTML;
+      if ((event.key == "x" || event.key == "X") && doc == "Press X") {
         this.video.play();
         this.video2.play();
         const info_panel = document.getElementById("info");
@@ -802,16 +814,8 @@ class App {
           var actions = this.mixer.clipAction(clip);
           this.anim[names[i]] = actions;
         }
-
-        this.loadingbar.visible = false;
         this.scene.add(gltf.scene);
         this.modelLoaded = true;
-      },
-      (xhr) => {
-        this.loadingbar.progress = xhr.loaded / xhr.total;
-      },
-      (err) => {
-        console.error(err);
       }
     );
   }
@@ -1471,6 +1475,14 @@ function speak(message) {
   var voices = window.speechSynthesis.getVoices();
   msg.voice = voices[0];
   window.speechSynthesis.speak(msg);
+}
+
+function setBoolean(val = false){
+  if (val == true){
+    return true;
+  }
+
+  return false;
 }
 
 export { App };
