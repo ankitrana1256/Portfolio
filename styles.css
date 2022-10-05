@@ -139,13 +139,6 @@ figcaption {
   border-radius: 20px;
 }
 
-#cross{
-  z-index: 10;
-  color: white;
-  background-color: blue;
-  border: 2px solid white;
-}
-
 .description{
   display: flex;
   flex-direction: column;
